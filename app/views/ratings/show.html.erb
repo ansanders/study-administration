@@ -41,9 +41,13 @@
       </th>
       <td/>
       <th>
-      <center>
+        <% if current_user.events_users.map(&:event_id).include?(@event.id) %>
+         <%if convert_date_to_number(@event.events_users.find_by_user_id(current_user.id).semester) == "bestanden"%>
+          <center>
          <a class="Bewertung" href ="#"> Bewertung abgeben</a>
       </center>
+      <%end%>
+      <%end%>
       </th>
     </tr>
     <!--  Arrays for tooltip, name rating-category and column name -->
