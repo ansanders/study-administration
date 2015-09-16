@@ -3,14 +3,14 @@ class Event < ActiveRecord::Base
 	has_many :ratings
   has_and_belongs_to_many :blocks
 
-  has_many  :events_users
+  has_many  :events_users, :dependent => :destroy
   has_many :users, through: :events_users
   has_many :schedules, :dependent => :delete_all
   accepts_nested_attributes_for :events_users
 
 	validates_inclusion_of :cycle, :in => ['Jedes Wintersemester','Jedes Sommersemester','Jedes Semester', 'Jedes Wintersemester (ungerade)', 'Jedes Wintersemester (gerade)', 'Jedes Sommersemester (ungerade)', 'Jedes Sommersemester (gerade)', 'Nicht regelmäßig' ]
-	validates_inclusion_of :credits, :in => 0..20
-	validates_inclusion_of :sws, :in => 0..20
+	validates_inclusion_of :credits, :in => 0..30
+	validates_inclusion_of :sws, :in => 0..30
 	validates_presence_of :prof, :title, :identifier
 
   #method to calculate the average-rating. 
@@ -38,16 +38,18 @@ class Event < ActiveRecord::Base
   def self.import(file)
     infile = File.read(file)
     csv = CSV.parse(infile, :headers => true)
-    if csv.headers == ["identifier" , "title","description","prof","credits","sws","cycle","exam_type","condition", "relation"] #header check
+    if csv.headers == ["identifier" ,"title","description","prof","credits","sws","cycle","exam_type","condition", "relation"] #header check
       csv.each do |row|
         row_hash = row.to_hash
-        if Event.find_by_identifier(row_hash["identifier"]).nil?
-          event = Event.create! row_hash.delete("relation")
+        relation = row_hash["relation"]
+        event = Event.find_by_identifier(row_hash["identifier"])
+        if event.nil?
+          event = Event.create! row_hash.except!("relation")
         end
-        relations = row_hash["relation"].split(";")
+        relations = relation.split(";")
         relations.each do |rel|
           block = Block.find_by_name(rel)
-          unless block.nil? && !block.events.find_by_identifier(row_hash["identifier"]).nil?
+          if (!block.nil? && block.events.find_by_identifier(row_hash["identifier"]).nil?)
             block.events << event
           end
         end
